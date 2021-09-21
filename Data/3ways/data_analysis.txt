@@ -1,0 +1,33 @@
+16’period': ['yes','no']
+
+'window_size': [1,2,7]
+
+'window_weight': ['flat','linear']
+
+'window_type': ['forward','backward','summed','boundary']
+
+'normalization': ['log','ppmi','non']
+
+'reduction': ['non','svd']
+
+'encode': ['cooc','cos','distance','corr']
+
+'representation': ['space','graph']
+
+1. basic graphical model(DG):
+(no,1,flat,boundary,log,non,cooc,graph)
+period: yes>no
+window_size: 1>>2,7
+window_weight: same for window size 1
+window_type: summed/boundary
+normalization: log> ppmi > non
+reduction: non > svd
+encode: cooc > others
+
+2. spacial model:
+
+
+
+
+
+

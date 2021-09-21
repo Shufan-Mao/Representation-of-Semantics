@@ -423,12 +423,13 @@ def plot_rep_violin(pandas_data, x, y, hue):
     plt.figure(figsize = (12.5,8))
     sns.violinplot(x = y, y = x, hue = hue, data = pandas_data, palette="Set2",
                               split=True, scale= 'count', inner="stick", scale_hue=False, bw=.1)
-    plt.xlabel('Correlation score', fontsize = 15)
+    plt.xlabel('correlation', color = 'w')
     plt.ylabel(x, color = 'w')
     if x == 'encode':
         plt.yticks([0,1,2,3,4,5,6],['distance','cosine','correlation','reduced-distance','reduced-cosine',
-                                    'reduced-correlation','co-occurrence'], fontsize = 12)
-    plt.legend(loc='upper left')
+                                    'reduced-correlation','co-occurrence'], fontsize = 18)
+        plt.xticks(fontsize=18)
+    plt.legend(loc='upper left', fontsize = 18)
     plt.savefig(save_path3 + '/' + hue + '_' + x, bbox_inches='tight')
 
 
@@ -463,9 +464,9 @@ def main():
     indices3 = get_moment_index(len(parameters))[1][3]
     plot_interaction(indices3, parameter_dict, parameters, data_frame, 2)
 
-#main()
+main()
 
-get_raw_dataframe(model_path,path)
+#get_raw_dataframe(model_path,path)
 
 
 

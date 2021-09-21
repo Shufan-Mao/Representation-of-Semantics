@@ -2,7 +2,7 @@ from Programs.World import world, config
 import csv
 import numpy as np
 
-VERBOSE = False
+VERBOSE = True
 
 
 def running_world():  # running the world and get the corpus
