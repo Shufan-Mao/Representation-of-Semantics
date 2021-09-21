@@ -9,7 +9,7 @@ from Programs.Experiment import generate_world, build_models, paradigmatic_task 
 # s_task for conducting syntagmatic tasks
 # p_task for conducting paradigmatic tasks (not investigated in the current project)
 
-num_run = 10
+num_run = 1
 test_world = True
 s_task = False
 p_task = False
