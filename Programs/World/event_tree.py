@@ -8,8 +8,10 @@ from networkx.drawing.nx_agraph import graphviz_layout
 # define event_tree generating function
 # The structure of a tree is uniquely determined by the coordinate of all its leaves thus we generate the
 # tree from the leave information in the leave file.
-# There are two leave files in the directory, we use the 'event_tree' for experiment.
+# There are leave files corresponding to different agent categories in the directory.
 ####################################################################################################################
+
+tree = config.World.event_tree_human
 
 def initialize_event_tree(leave_file, show_tree):
     f = open(leave_file)
@@ -61,8 +63,7 @@ def initialize_event_tree(leave_file, show_tree):
     return tree, t
 
 ####################################################################################################################
-# The event tree gives the event structure for a human in the world. Animals' actions are simplistic in the current
-# setting which do not require an event structure.
+# The event tree gives the event structure for agnets.
 # Each node of the event tree is an event, where the leaves are simple events. The information for the tree is stores
 # in a tree dictionary, which get updated as the world is running. The key for the dictionary is the coordinates of the
 # nodes, and the values are the corresponding information of the event on that node.
@@ -72,12 +73,12 @@ def initialize_event_tree(leave_file, show_tree):
 ####################################################################################################################
 
 
-def main():
-    tree, t = initialize_event_tree(config.World.event_tree_file,0)
+def show_tree(tree_file):
+    tree, t = initialize_event_tree(tree_file[6:],0)
     print(tree)
-    #pos = graphviz_layout(t, prog='dot')
-    #nx.draw(t, pos, arrows=False, with_labels=True)
-    #plt.show()
+    pos = graphviz_layout(t, prog='dot')
+    nx.draw(t, pos, arrows=False, with_labels=True)
+    plt.show()
 
 
-#main()
+show_tree(tree)

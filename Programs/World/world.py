@@ -3,8 +3,9 @@ from Programs.World import config
 from Programs.World.human import Human
 
 import Programs.World.animals as animal
-import Programs.World.plant_rescource as plant
+import Programs.World.object as object
 
+# world 2 update
 
 class World:
     ################################################################################################################
@@ -17,6 +18,60 @@ class World:
     ################################################################################################################
 
     def __init__(self):
+
+        ################################################################################################################
+        # category taxonomy: what categories of entities are allowed to exist in the world simulation, organized in
+        # taxonomy
+        ################################################################################################################
+        self.cat_tax = {'agent':{'human':[],
+                                 'animal':{'carnivore':[],
+                                           'herbivore':{'herb_s':[],
+                                                        'herb_m':[],
+                                                        'herb_l':[]}
+                                           }
+                                 },
+                        'object':{'plant_resource':{'nut':[],
+                                                    'fruit':[],
+                                                    'plant':[]},
+                                  'instrument':{'tool':[],
+                                                'appliance':[],
+                                                },
+                                  'material':[],
+                                  'drink':[],
+                                  },
+                        'location':[]
+                                                                            }
+        ################################################################################################################
+        # entity taxonomy
+        ################################################################################################################
+        self.noun_tax = {'Jessica': 'human', 'Jon': 'human', 'Anastasia': 'human', 'Phil': 'human', 'Andrew': 'human',
+                         'Lin Khern': 'human', 'Emily': 'human', 'Shufan': 'human', 'Jacki': 'human','Katherine': 'human',
+                         'Zeynep': 'human',
+
+                         'wolf': 'carnivore', 'tiger': 'carnivore', 'hyena': 'carnivore',
+
+                         'rabbit': 'herb_s', 'squirrel': 'herb_s', 'fox': 'herb_s',
+
+                         'mouflon': 'herb_m', 'ibex': 'herb_m', 'boar': 'herb_m',
+
+                         'bison': 'herb_l', 'buffalo': 'herb_l', 'auroch': 'herb_l',
+
+                         'walnut': 'nut', 'cashew': 'nut', 'almond': 'nut',
+
+                         'apple': 'fruit', 'peach': 'fruit', 'pear': 'fruit',
+
+                         'leaf': 'plant', 'grass': 'plant', 'flower': 'plant',
+
+                         'wood': 'material', 'stone': 'material', 'hay': 'material',
+
+                         'knife': 'tool', 'polisher': 'tool', 'chisel': 'tool','cracker': 'tool', 'hammer': 'tool',
+                         'ax': 'tool', 'spear': 'tool', 'arrow': 'tool', 'dagger': 'tool',
+
+                         'oven': 'appliance', 'campfire': 'appliance', 'furnace': 'appliance',
+
+                         'water': 'drink', 'juice': 'drink', 'milk': 'drink',
+
+                         'river': 'location', 'tent': 'location', 'fire': 'location'}
 
         #  type of the predicates(simple event), the number refers to the argument it takes,
         self.simple_event_dict = {'search': 1, 'go_to': 2, 'trap': 2, 'catch': 2, 'chase': 2, 'stab': 2, 'shoot': 2,
@@ -31,7 +86,8 @@ class World:
         self.agent_list = []
 
         # possible names of the humans in the world, which are the names of lab members in Learning & Language Lab
-        self.name_list = ['Jessica','Jon','Anastasia','Phil','Andrew','Lin Khern','Emily','Shufan','Jacki','Katherine']
+        self.name_list = ['Jessica','Jon','Anastasia','Phil','Andrew','Lin Khern','Emily','Shufan','Jacki','Katherine',
+                          'Zeynep']
         self.human_list = []
 
         # animal taxonomy
@@ -88,6 +144,7 @@ class World:
         # possible drink categories
         self.drink_category = ['water','juice','milk']
 
+        # food and comsumption of food
         self.food_list = []
         self.food_stored = 0
         self.consumption = []
@@ -95,6 +152,18 @@ class World:
 
         # possible locations in the world
         self.location_list = ['river', 'tent', 'fire']
+
+        # possible tool categories
+        self.tool_category = ['spear', 'arrow', 'dagger','ax','hammer','knife','cracker','polisher','chisel']
+        self.tool_list = []
+        # the size of a tool object in each category
+        self.animal_size = {'spear':10, 'arrow':0.5, 'dagger':1,'ax':5,'hammer':10,'knife':0.5,'cracker':1,'polisher':1,
+                            'chisel':0.5}
+
+        # possible appliance categories
+        self.appliance_category = ['oven', 'campfire', 'furnace']
+        self.appliance_list = []
+
 
         # an epoch is a period staring from the initialization of the event tree of a human, until the event tree get
         # completed, this is well defined since currently only one human is generated in the world
@@ -115,20 +184,6 @@ class World:
         self.herbivore_eat = 0
         self.human_eat = 0
 
-        ################################################################################################################
-        # entity taxonomy
-        ################################################################################################################
-        self.noun_tax = {'Jessica':'human','Jon':'human','Anastasia':'human','Phil':'human','Andrew':'human',
-                         'Lin Khern':'human','Emily':'human','Shufan':'human','Jacki':'human','Katherine':'human',
-                        'rabbit':'herb_s','squirrel':'herb_s','fox':'herb_s',
-                         'mouflon':'herb_m', 'ibex':'herb_m', 'boar':'herb_m',
-                         'bison':'herb_l','buffalo':'herb_l','auroch':'herb_l',
-                         'wolf':'carnivore','tiger':'carnivore','hyena':'carnivore',
-                         'apple':'fruit','peach':'fruit','pear':'fruit',
-                         'walnut':'nut', 'cashew':'nut', 'almond':'nut',
-                         'leaf':'plant','grass':'plant','flower':'plant',
-                         'water':'drink', 'juice':'drink', 'milk':'drink',
-                         'river':'location', 'tent':'location','fire':'location'}
 
         ################################################################################################################
         # corpus related attributes
@@ -156,7 +211,6 @@ class World:
             self.human_list.append(a_human)
             self.agent_list.append(a_human)
 
-
     def create_herbivores(self):
         for herbivore in self.herbivore_category[:6]:
             for i in range(config.World.num_herbivores):
@@ -173,21 +227,36 @@ class World:
 
     def create_plant(self):
         for i in range(config.World.num_plants)[:2]:
-            a_plant = plant.Plant(self)
+            a_plant = object.Plant(self)
             self.plant_list.append(a_plant)
             self.plant_resource.append(a_plant)
 
     def create_nut(self):
         for i in range(config.World.num_nuts)[:2]:
-            a_nut = plant.Nut(self)
+            a_nut = object.Nut(self)
             self.nut_list.append(a_nut)
             self.plant_resource.append(a_nut)
 
     def create_fruit(self):
         for i in range(config.World.num_fruits)[:2]:
-            a_fruit = plant.Fruit(self)
+            a_fruit = object.Fruit(self)
             self.fruit_list.append(a_fruit)
             self.plant_resource.append(a_fruit)
+
+    def create_tool(self):
+        for tool in self.tool_category:
+            for i in range(config.World.num_humans): # every human get a toolbox for free at the beginning
+                a_tool = object.Tool(self,tool)
+                self.tool_list.append(a_tool)
+
+
+    def create_appliance(self):
+        for appliance in self.appliance_category:
+            for i in range(config.World.num_appliances): # all people share a certain number of appliances
+                an_appliance = object.Appliance(self, appliance)
+                self.fruit_list.append(an_appliance)
+
+
 
 
     def next_turn(self): # human and animals take turns in order

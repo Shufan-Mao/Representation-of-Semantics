@@ -16,6 +16,7 @@ class World:
     num_nuts = 100
     num_fruits = 100
     num_plants = 100
+    num_appliances = 1
     num_turn = 10000
     event_tree_human = 'World/event_tree_human.txt'
     event_tree_carnivore = 'World/event_tree_carnivore.txt'
