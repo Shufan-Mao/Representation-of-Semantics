@@ -2,7 +2,7 @@ import random
 from Programs.World import config
 from Programs.World.human import Human
 
-import Programs.World.animals as animal
+import Programs.World.agent as agent
 import Programs.World.object as object
 
 # world 2 update
@@ -18,6 +18,15 @@ class World:
     ################################################################################################################
 
     def __init__(self):
+        self.world_size = config.World.world_size
+        ################################################################################################################
+        # world map: the world is cut into regions with names (locations, such as river, mountain, kitchen, etc.), in
+        # world 2, regions are all rectangular blocks, with left and bottom boundaris closed, and while right and top
+        # boundaries open
+        ################################################################################################################
+        self.world_map = {'river':((0.9,1),(0,1)),'mountain':((0,0.3),(0.3,1)),'forest':((0.3,0.6),(0.3,1)),
+                          'grassland':((0.6,0.9),(0.3,1)),'workshop':((0,0.3),(0,0.3)),'kitchen':((0.3,0.5),(0,0.3)),
+                          'fireplace':((0.5,0.7),(0,0.3)), 'tent':((0.7,0.9),(0,0.3))}
 
         ################################################################################################################
         # category taxonomy: what categories of entities are allowed to exist in the world simulation, organized in
@@ -214,14 +223,14 @@ class World:
     def create_herbivores(self):
         for herbivore in self.herbivore_category[:6]:
             for i in range(config.World.num_herbivores):
-                a_herbivore = animal.Herbivore(self,herbivore)
+                a_herbivore = agent.Herbivore(self,herbivore)
                 self.herbivore_list.append(a_herbivore)
                 self.agent_list.append(a_herbivore)
 
     def create_carnivores(self):
         for carnivore in self.carnivore_category[:2]:
             for i in range(config.World.num_carnivores):
-                a_carnivore = animal.Carnivore(self,carnivore)
+                a_carnivore = agent.Carnivore(self,carnivore)
                 self.carnivore_list.append(a_carnivore)
                 self.agent_list.append(a_carnivore)
 

@@ -1,8 +1,10 @@
 import random
 import numpy as np
 from Programs.World import config
+from Programs.World.entity import Entity
 
-class Plant_resource:
+
+class Plant_resource(Entity):
 
     ####################################################################################################################
     # define plant_resource class, now including 3 subclasses: Plant (eaten by herbivores); Nut and Fruit (eaten by
@@ -16,7 +18,7 @@ class Plant_resource:
     ####################################################################################################################
 
     def __init__(self, world):
-        self.world = world
+        Entity.__init__(self,world)
         self.type = 'plant_r'
         self.size = random.randint(1000,2000)
         self.remain_size = self.size

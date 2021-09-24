@@ -5,16 +5,15 @@ import numpy as np
 from Programs.World import config
 from Programs.World import event_tree as et
 from Programs.World import human
+from Programs.World.entity import Entity
 VERBOSE = False
 
-class Agent:
+class Agent(Entity):
     ####################################################################################################################
     # Agents are entities in the world that is animate and be able to play agent role in events
     ####################################################################################################################
     def __init__(self, world):
-        self.world = world
-        self.x = None
-        self.y = None
+        Entity.__init__(self,world)
         self.type = None
         self.id_number = None
 
@@ -55,6 +54,12 @@ class Agent:
         # it is none
         self.event_dict = None
         self.event_tree = None
+        self.current_tree_file = None
+        self.current_event_structures = []  # when the event_dict and event_tree are not in the grand structure of an
+        # agent, but in the some sub structure, this list record where the sub structure locates. The last item of the
+        # list is the structure super to the current structure, while the first item is the grand structure. The list is
+        # empty when the agent is not inside of any sub structure.
+
         self.destination = None  # where to go
         self.food_target = None  # get the food target
         self.state_change = None  # get the change of drive levels for all actions.
@@ -75,8 +80,12 @@ class Agent:
         self.noun_stems = [] # noun wthout thematic roles
         self.noun_dict = {} # dictionary for noun stems and their roles
 
-
-    # decide whether or not the currenct event has been completed
+    ####################################################################################################################
+    # computing the status of the node standing on at the moment
+    # the status of leaves is the status of itself, 0,1, or -1
+    # the status of non terminal nodes are functions of the status of their children, for serial nodes, it is the
+    # Boolean product of children's status, and for parallel nodes, it is the Boolean sum of children's status
+    ####################################################################################################################
     def compute_status(self):
         t = self.event_tree
         current_dict = self.event_dict
@@ -84,54 +93,16 @@ class Agent:
         if current_dict[self.current_event][0] == "s":
             score = 0
             for event in t.neighbors(self.current_event):
-                if current_dict[event][1] > 0:
+                if current_dict[event][-1] > 0:
                     score = score + 1
-            self.event_dict[self.current_event][1] = score
+            self.event_dict[self.current_event][-1] = score
 
-        elif current_dict[self.current_event][0] in {'op','pp'}:
+        elif current_dict[self.current_event][0] in {'op', 'pp'}:
             for event in t.neighbors(self.current_event):
-                if current_dict[event][1] == 0:
-                    self.event_dict[self.current_event][1] = 0
+                if current_dict[event][-1] == 0:
+                    self.event_dict[self.current_event][-1] = 0
                     break
 
-
-    # decide where to go for the next step in the event structure tree
-    def choose_heir(self):
-        t = self.event_tree
-        event_type = self.event_dict[self.current_event][0]
-        children = [n for n in t.neighbors(self.current_event)]
-        children.sort()
-        if event_type == 's':
-            index = len(children) - self.event_dict[self.current_event][1]
-            self.current_event = children[index]
-        elif event_type == 'op':
-            score = -float('Inf')
-            event = ''
-            for child in children:
-                new_score = self.compute_scores(child)
-                if new_score > score:
-                    score = new_score
-                    event = child
-            self.current_event = event
-            if self.current_event == (2,):  # choose the drink to drink
-                self.focus = random.choice(self.world.drink_category)
-        else:
-            pass
-        return self.current_event
-
-    def compute_scores(self, event): # as an agent, it has to satisfy hunger, thirst and sleepiness
-        # decide what to satisfy
-        if event == (0, ) and self.hunger >= self.hunger_threshold:
-            score = self.hunger
-        elif event == (1, ) and self.sleepiness >= self.sleep_threshold:
-            score = self.sleepiness
-        elif event == (2,) and self.thirst >= self.thirst_threshold:
-            score = self.thirst
-        elif event == (3,):
-            score = 0
-        else:
-            score = -float('Inf')
-        return score
 
 
 class Animal(Agent):
@@ -161,6 +132,46 @@ class Animal(Agent):
         self.idle_count = 0
         self.alive = True
         self.animal_type = None
+
+
+
+    # decide where to go for the next step in the event structure tree
+    def choose_heir(self):
+        t = self.event_tree
+        event_type = self.event_dict[self.current_event][0]
+        children = [n for n in t.neighbors(self.current_event)]
+        children.sort()
+        if event_type == 's':
+            index = len(children) - self.event_dict[self.current_event][1]
+            self.current_event = children[index]
+        elif event_type == 'op':
+            score = -float('Inf')
+            event = ''
+            for child in children:
+                new_score = self.compute_scores(child)
+                if new_score > score:
+                    score = new_score
+                    event = child
+            self.current_event = event
+            if self.current_event == (2,):  # choose the drink to drink
+                self.focus = random.choice(self.world.drink_category)
+        else:
+            pass
+        return self.current_event
+
+    def compute_scores(self, event):  # as an agent, it has to satisfy hunger, thirst and sleepiness
+        # decide what to satisfy
+        if event == (0,) and self.hunger >= self.hunger_threshold:
+            score = self.hunger
+        elif event == (1,) and self.sleepiness >= self.sleep_threshold:
+            score = self.sleepiness
+        elif event == (2,) and self.thirst >= self.thirst_threshold:
+            score = self.thirst
+        elif event == (3,):
+            score = 0
+        else:
+            score = -float('Inf')
+        return score
 
 
     ################################################################################################################
@@ -464,12 +475,13 @@ class Carnivore(Animal):
         self.thirst = random.uniform(0.7,1)
 
         self.sleep_threshold = 1
-        self.hunger_threshold = 20
+        self.hunger_threshold = 100
         self.thirst_threshold = 0.3
         self.sleepy_rate = 0.05
 
         self.speed = random.uniform(200, 300)
         self.vision = random.uniform(80, 120)
+        self.current_tree_file = config.World.event_tree_carnivore
         self.event_dict, self.event_tree = et.initialize_event_tree(config.World.event_tree_carnivore, 0)  # generate
         # the event tree structure which human obeys.
         # animal size refers to the weight of the animal object, which is transfered to many objects in the world, when
@@ -490,9 +502,9 @@ class Carnivore(Animal):
 
     def take_turn(self):
         t = self.event_tree
-        self.compute_status()  # no matter which node the human is on at the moment, compute the status of that
+        self.compute_status()  # compute the status of that
         # node(event).
-        status = self.event_dict[self.current_event][1]
+        status = self.event_dict[self.current_event][-1]
         #print('{}{} on status {} focusing on {}, with destination {} and status {}'.format(self.category,
         #                                                                     self.id_number,
         #                                                                     self.event_dict[self.current_event][0],
@@ -505,21 +517,33 @@ class Carnivore(Animal):
         if t.out_degree(self.current_event) == 0:  # currently on leave
             if status == 1:  # status 1 means event not completed, keep carrying out functions for simple event
                 event_name = self.event_dict[self.current_event][0]
-                if event_name == 'searching':
-                    self.searching()
-                elif event_name == 'going_to':
-                    self.going_to()
-                elif event_name in {'gathering', 'butchering', 'cooking', 'eating', 'laying_down', 'sleeping',
-                                    'waking_up', 'getting_up','drinking','resting','peeling','cracking'}:
-                    self.do_it(event_name)
-                else:
-                    self.hunt(event_name)
-                self.generate_language(event_name)  # generate the corresponding sentence for the ongoing simple event
+                if event_name != 'subtree':  # the leave is a simple event
+                    if event_name == 'searching':
+                        self.searching()
+                    elif event_name == 'going_to':
+                        self.going_to()
+                    elif event_name in {'gathering', 'butchering', 'cooking', 'eating', 'laying_down', 'sleeping',
+                                        'waking_up', 'getting_up','drinking','resting','peeling','cracking'}:
+                        self.do_it(event_name)
+                    else:
+                        self.hunt(event_name)
+                    self.generate_language(event_name)  # generate the corresponding sentence for the ongoing simple event
+                else:  # when the leave represent a subtree
+                    self.current_event_structures.append((self.event_dict, self.event_tree, self.current_event,
+                                                          self.current_tree_file))  # remember the super structure
+                    # print(self.event_dict[self.current_event])
+                    self.current_tree_file = 'World/' + self.event_dict[self.current_event][1]
+                    self.event_dict, self.event_tree = et.initialize_event_tree(self.current_tree_file,
+                                                                                0)  # get into the subtree
+                    self.current_event = ()  # start from the root of the subtree
+
             elif status == 0: # status 0 means event completed
                 self.current_event = self.current_event[:len(self.current_event)-1]  # go back to the parent node
             else:  # status -1 means event failed, re-initialize the event tree and restart
-                self.event_dict, self.event_tree = et.initialize_event_tree(config.World.event_tree_carnivore, 0)
-                self.focus = None
+                if len(self.current_event_structures) == 0:  # when in the grand tree
+                    self.current_tree_file = config.World.event_tree_carnivore
+                    self.focus = None
+                self.event_dict, self.event_tree = et.initialize_event_tree(self.current_tree_file, 0)
                 self.current_event = ()
 
         elif t.in_degree(self.current_event) != 0:  # currently on branch
@@ -530,14 +554,21 @@ class Carnivore(Animal):
 
         else:  # currently on the root
             if status == 0:  # event tree have been completed, re-initialize the event tree
-                if VERBOSE:
-                    print('epoch finished')
-                    print(self.hunger, self.sleepiness, self.thirst)
-                l = len(self.world.carnivore_list)
-                if self.world.carnivore_list.index(self) == l-1:
-                    self.world.epoch = self.world.epoch + 1
-                self.event_dict, self.event_tree = et.initialize_event_tree(config.World.event_tree_carnivore,0)
-                self.focus = None
+                if len(self.current_event_structures) == 0:  # currently on the grand structure which completed
+                    if VERBOSE:
+                        print('epoch finished')
+                        print(self.hunger, self.sleepiness, self.thirst)
+                    l = len(self.world.carnivore_list)
+                    if self.world.carnivore_list.index(self) == l-1:
+                        self.world.epoch = self.world.epoch + 1
+                    self.event_dict, self.event_tree = et.initialize_event_tree(config.World.event_tree_carnivore,0)
+                    self.focus = None
+                else: # currently in a sub structure which is completed
+                    self.event_dict, self.event_tree, self.current_event, self.current_tree_file = \
+                        self.current_event_structures[-1] # get back to the corresponding node in the super structure
+                    self.current_event_structures.pop() # erase the subevent from record
+                    #print(self.name, self.current_event_structures)
+                    self.event_dict[self.current_event][-1] = 0 # update the corresponding event to 'completed'
             else:  # event tree not completed, choose the child node to go and go to the child.
                 self.current_event = self.choose_heir()
 
@@ -612,6 +643,7 @@ class Herbivore(Animal):
 
         self.speed = random.uniform(1, 5)
         self.vision = random.uniform(30, 60)
+        self.current_tree_file = config.World.event_tree_herbivore
         self.event_dict, self.event_tree = et.initialize_event_tree(config.World.event_tree_herbivore, 0)  # generate
         # the event tree structure which human obeys.
         # animal size refers to the weight of the animal object, which is transfered to many objects in the world, when
@@ -642,18 +674,34 @@ class Herbivore(Animal):
         #print(self.hunger, self.sleepiness, self.thirst)
 
         if t.out_degree(self.current_event) == 0:  # currently on leave
+            event_name = self.event_dict[self.current_event][0]
             if status == 1:  # status 1 means event not completed, keep carrying out functions for simple event
-                event_name = self.event_dict[self.current_event][0]
-                if event_name == 'searching':
-                    self.searching()
-                elif event_name == 'going_to':
-                    self.going_to()
-                elif event_name in {'gathering', 'butchering', 'cooking', 'eating', 'laying_down', 'sleeping',
-                                    'waking_up', 'getting_up', 'drinking', 'resting', 'peeling', 'cracking'}:
-                    self.do_it(event_name)
-                self.generate_language(event_name) # generate the corresponding sentence for the ongoing simple event
-            else :  # status 0 means event completed
+                if event_name != 'subtree':  # the leave is a simple event:
+                    event_name = self.event_dict[self.current_event][0]
+                    if event_name == 'searching':
+                        self.searching()
+                    elif event_name == 'going_to':
+                        self.going_to()
+                    elif event_name in {'gathering', 'butchering', 'cooking', 'eating', 'laying_down', 'sleeping',
+                                        'waking_up', 'getting_up', 'drinking', 'resting', 'peeling', 'cracking'}:
+                        self.do_it(event_name)
+                    self.generate_language(event_name) # generate the corresponding sentence for the ongoing simple event
+                else:  # when the leave represent a subtree
+                    self.current_event_structures.append((self.event_dict, self.event_tree, self.current_event,
+                                                          self.current_tree_file))  # remember the super structure
+                    # print(self.event_dict[self.current_event])
+                    self.current_tree_file = 'World/' + self.event_dict[self.current_event][1]
+                    self.event_dict, self.event_tree = et.initialize_event_tree(self.current_tree_file,
+                                                                                0)  # get into the subtree
+                    self.current_event = ()  # start from the root of the subtree
+            elif status == 0 :  # status 0 means event completed
                 self.current_event = self.current_event[:len(self.current_event) - 1]  # go back to the parent node
+            else:  # status -1 means event failed, re-initialize the current event tree and restart
+                if len(self.current_event_structures) == 0: # when in the grand tree
+                    self.current_tree_file = config.World.event_tree_herbivore
+                    self.focus = None
+                self.event_dict, self.event_tree = et.initialize_event_tree(self.current_tree_file, 0)
+                self.current_event = ()
 
         elif t.in_degree(self.current_event) != 0:  # currently on branch
             if status == 0:  # event completed, go back to parent node
@@ -663,14 +711,21 @@ class Herbivore(Animal):
 
         else:  # currently on the root
             if status == 0:  # event tree have been completed, re-initialize the event tree
-                if VERBOSE:
-                    print('epoch finished')
-                    print(self.hunger, self.sleepiness, self.thirst)
-                l = len(self.world.herbivore_list)
-                if self.world.herbivore_list.index(self) == l - 1:
-                    self.world.epoch = self.world.epoch + 1
-                self.event_dict, self.event_tree = et.initialize_event_tree(config.World.event_tree_herbivore, 0)
-                self.focus = None
+                if len(self.current_event_structures) == 0:  # currently on the grand structure which completed
+                    if VERBOSE:
+                        print('epoch finished')
+                        print(self.hunger, self.sleepiness, self.thirst)
+                    l = len(self.world.herbivore_list)
+                    if self.world.herbivore_list.index(self) == l - 1:
+                        self.world.epoch = self.world.epoch + 1
+                    self.event_dict, self.event_tree = et.initialize_event_tree(config.World.event_tree_herbivore, 0)
+                    self.focus = None
+                else:  # currently in a sub structure which is completed
+                    self.event_dict, self.event_tree, self.current_event, self.current_tree_file = \
+                        self.current_event_structures[-1]  # get back to the corresponding node in the super structure
+                    self.current_event_structures.pop()  # erase the subevent from record
+                    # print(self.name, self.current_event_structures)
+                    self.event_dict[self.current_event][-1] = 0  # update the corresponding event to 'completed'
             else:  # event tree not completed, choose the child node to go and go to the child.
                 self.current_event = self.choose_heir()
 

@@ -3,20 +3,21 @@ import random
 
 import numpy as np
 
-from Programs.World import animals
+from Programs.World.agent import Agent
+from Programs.World.agent import Herbivore
 from Programs.World import config
 from Programs.World import event_tree as et
 
 VERBOSE = False
 
 
-class Human:
+class Human(Agent):
     ####################################################################################################################
     # define human class
     ####################################################################################################################
 
     def __init__(self, world, name):
-        self.world = world  # a human object lives in a certain world
+        Agent.__init__(self,world)
 
         # a human has basic properties including position, name
         self.x = random.randint(config.World.tile_size, config.World.world_size - config.World.tile_size)
@@ -78,16 +79,7 @@ class Human:
         # the current event structure
         self.event_dict, self.event_tree = et.initialize_event_tree(self.current_tree_file, 0)  # generate the
         # event tree structure which human obeys.
-        self.current_event = ()  # where the human is on the event tree at the moment
 
-        self.current_event_structures = [] # when the event_dict and event_tree are not in the grand structure of an
-        # agent, but in the some sub structure, this list record where the sub structure locates. The last item of the
-        # list is the structure super to the current structure, while the first item is the grand structure. The list is
-        # empty when the agent is not inside of any sub structure.
-
-
-
-        self.destination = None # where to go
         self.food_target = self.get_target() # get the food target
         self.hunting_method = self.get_hunting_method()  # get the hunting method, which is a distribution over the
         # methods can be used for hunting
@@ -345,7 +337,7 @@ class Human:
                 if VERBOSE:
                     print('{} is {} {}.'.format(agent, event_name, focus))
 
-            elif isinstance(self.focus, animals.Herbivore): # when patient is animate
+            elif isinstance(self.focus, Herbivore): # when patient is animate
                 the_patient = self.focus.category
                 focus = self.focus.category + '-p'
                 if VERBOSE:
@@ -524,28 +516,6 @@ class Human:
                         score = 0
         return score
 
-    ####################################################################################################################
-    # computing the status of the node standing on at the moment
-    # the status of leaves is the status of itself, 0,1, or -1
-    # the status of non terminal nodes are functions of the status of their children, for serial nodes, it is the
-    # Boolean product of children's status, and for parallel nodes, it is the Boolean sum of children's status
-    ####################################################################################################################
-    def compute_status(self):
-        t = self.event_tree
-        current_dict = self.event_dict
-
-        if current_dict[self.current_event][0] == "s":
-            score = 0
-            for event in t.neighbors(self.current_event):
-                if current_dict[event][-1] > 0:
-                    score = score + 1
-            self.event_dict[self.current_event][-1] = score
-
-        elif current_dict[self.current_event][0] in {'op','pp'}:
-            for event in t.neighbors(self.current_event):
-                if current_dict[event][-1] == 0:
-                    self.event_dict[self.current_event][-1] = 0
-                    break
 
     def move(self):
         x_delta = random.randint(-10, 10)
