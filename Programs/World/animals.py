@@ -374,7 +374,7 @@ class Animal(Agent):
     # if the focus is not an animal, the event is completed
     ####################################################################################################################
     def going_to(self):
-        if type(self.focus) is type('1') :  # whent the animal wants to drink
+        if type(self.focus) is type('1') :  # when the animal wants to drink
             self.destination = 'river'
             self.event_dict[self.current_event][1] = 0
 
@@ -464,7 +464,7 @@ class Carnivore(Animal):
         self.thirst = random.uniform(0.7,1)
 
         self.sleep_threshold = 1
-        self.hunger_threshold = 100
+        self.hunger_threshold = 20
         self.thirst_threshold = 0.3
         self.sleepy_rate = 0.05
 
@@ -493,8 +493,13 @@ class Carnivore(Animal):
         self.compute_status()  # no matter which node the human is on at the moment, compute the status of that
         # node(event).
         status = self.event_dict[self.current_event][1]
-        # print('{}{} on status {}'.format(self.name, self.id_number, self.current_event))
-        # print(self.hunger, self.sleepiness, self.thirst)
+        #print('{}{} on status {} focusing on {}, with destination {} and status {}'.format(self.category,
+        #                                                                     self.id_number,
+        #                                                                     self.event_dict[self.current_event][0],
+        #                                                                     type(self.focus),
+        #                                                                    self.destination, status))
+
+        #print(self.hunger, self.sleepiness, self.thirst)
 
 
         if t.out_degree(self.current_event) == 0:  # currently on leave
@@ -631,8 +636,10 @@ class Herbivore(Animal):
         self.compute_status()  # no matter which node the human is on at the moment, compute the status of that
         # node(event).
         status = self.event_dict[self.current_event][1]
-        # print('{}{} on status {}'.format(self.name, self.id_number, self.current_event))
-        # print(self.hunger, self.sleepiness, self.thirst)
+        #print('{}{} on status {} focusing on {}, '
+        #      'with destination {}'.format(self.category, self.id_number,
+        #                                   self.current_event, self.focus,self.destination))
+        #print(self.hunger, self.sleepiness, self.thirst)
 
         if t.out_degree(self.current_event) == 0:  # currently on leave
             if status == 1:  # status 1 means event not completed, keep carrying out functions for simple event

@@ -1,5 +1,6 @@
 {()}
 {}
+{}
 ['searching',(0,0)]
 ['going_to',(0,1)]
 ['chasing',(0,2)]

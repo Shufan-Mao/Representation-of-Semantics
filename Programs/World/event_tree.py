@@ -11,7 +11,7 @@ from networkx.drawing.nx_agraph import graphviz_layout
 # There are leave files corresponding to different agent categories in the directory.
 ####################################################################################################################
 
-tree = config.World.event_tree_human
+tree = 'World/event_human_hunting.txt'
 
 def initialize_event_tree(leave_file, show_tree):
     f = open(leave_file)
@@ -23,15 +23,20 @@ def initialize_event_tree(leave_file, show_tree):
             line_list.append(item)
     parallel = line_list[0] # the first line of leave file specify parallel nodes(parallel combination of sub events)
     prob_parallel = line_list[1]  # the 2nd line specify which of the parallel nodes choose child by random assignment
-    leaves = line_list[2:]  # read the leaves
-    tree = {}
+    sub_trees = line_list[2] # the 3rd line specify nodes representing subtree structures, which are connected to other
+                            # tree files
+    leaves = line_list[3:]  # read the leaves
+    tree = {} # store tree information
     depth = 0
-    t = nx.DiGraph()
+    t = nx.DiGraph() # the actual tree object
     for leave in leaves:
-        code = leave[1]
+        code = leave[-1]
         if depth < len(code):
             depth = len(code)
-        tree[code] = [leave[0], 1]
+        if code in sub_trees:
+            tree[code] = ['subtree',leave[0],1] # specify the node is a subtree, with leave[0] refering to the address
+        else:
+            tree[code] = [leave[0], 1]
         for i in range(len(code)-1, -1, -1):
             parent_code = code[:i]
             child_code = code[:i+1]
@@ -73,12 +78,12 @@ def initialize_event_tree(leave_file, show_tree):
 ####################################################################################################################
 
 
-def show_tree(tree_file):
-    tree, t = initialize_event_tree(tree_file[6:],0)
+def show_tree_here(tree_file):
+    tree, t = initialize_event_tree(tree_file[6:],0) # testing locally requires truncating the directory
     print(tree)
     pos = graphviz_layout(t, prog='dot')
     nx.draw(t, pos, arrows=False, with_labels=True)
     plt.show()
 
 
-show_tree(tree)
+#show_tree_here(tree)

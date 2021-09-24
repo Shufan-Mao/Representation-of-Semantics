@@ -157,7 +157,7 @@ class World:
         self.tool_category = ['spear', 'arrow', 'dagger','ax','hammer','knife','cracker','polisher','chisel']
         self.tool_list = []
         # the size of a tool object in each category
-        self.animal_size = {'spear':10, 'arrow':0.5, 'dagger':1,'ax':5,'hammer':10,'knife':0.5,'cracker':1,'polisher':1,
+        self.tool_size = {'spear':10, 'arrow':0.5, 'dagger':1,'ax':5,'hammer':10,'knife':0.5,'cracker':1,'polisher':1,
                             'chisel':0.5}
 
         # possible appliance categories

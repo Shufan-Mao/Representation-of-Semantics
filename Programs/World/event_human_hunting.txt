@@ -1,0 +1,15 @@
+{(2,0),(4,),(2,)}
+{(2,0)}
+{}
+['searching',(0,)]
+['going_to',(1,)]
+['trapping',(2,0,0,0)]
+['stabbing',(2,0,0,1)]
+['chasing',(2,0,1,0)]
+['shooting',(2,0,1,1)]
+['chasing',(2,0,2,0)]
+['throwing_at',(2,0,2,1)]
+['resting',(2,1)]
+['gathering',(3,)]
+['butchering',(4,0)]
+['resting',(4,1)]

@@ -3,7 +3,6 @@ import random
 
 import numpy as np
 
-from Programs.Graphical_Models import STN
 from Programs.World import animals
 from Programs.World import config
 from Programs.World import event_tree as et
@@ -74,15 +73,27 @@ class Human:
 
         self.focus = None  # when human are involved in transitive(ditransitive) events, focus is the patient, otherwise
         # it is none
-        self.event_dict, self.event_tree = et.initialize_event_tree(config.World.event_tree_human, 0)  # generate the
+
+        self.current_tree_file = config.World.event_tree_human  # the directory for current tree file, as the label of
+        # the current event structure
+        self.event_dict, self.event_tree = et.initialize_event_tree(self.current_tree_file, 0)  # generate the
         # event tree structure which human obeys.
+        self.current_event = ()  # where the human is on the event tree at the moment
+
+        self.current_event_structures = [] # when the event_dict and event_tree are not in the grand structure of an
+        # agent, but in the some sub structure, this list record where the sub structure locates. The last item of the
+        # list is the structure super to the current structure, while the first item is the grand structure. The list is
+        # empty when the agent is not inside of any sub structure.
+
+
+
         self.destination = None # where to go
         self.food_target = self.get_target() # get the food target
         self.hunting_method = self.get_hunting_method()  # get the hunting method, which is a distribution over the
         # methods can be used for hunting
         self.state_change = self.get_state_change()  # get the change of drive levels for all actions.
         self.drive = ['hunger', 'sleepiness', 'thirst']
-        self.current_event = ()  # where the human is on the event tree at hte moment
+
 
         # when cooking, foods are turned into some number of dishes, dish_list record the dishes remained, dish amount
         # record the total amount (of energy) of the dishes.
@@ -107,17 +118,7 @@ class Human:
 
         # action_dict = {'hunt_deer': [A, B, C, D]}
 
-    def get_activated_words(self):
-        l = len(self.corpus)
-        steve = STN.Stn(self.corpus)
-        # animal = set(the_world.animal_category)
-        hunting = {'trapping'}
-        if len(hunting.intersection(set(steve.word_list))) == 0:
-            words = random.choices(steve.word_list, k=1)
-        else:
-            hunting_list = list(set(steve.word_list).intersection(hunting))
-            words = random.choices(hunting_list, k=1)
-        return words,steve
+
 
     ################################################################################################################
     # get the things that will be searched for food
@@ -138,15 +139,15 @@ class Human:
     # get hunting method from success rates for all hunting actions
     ################################################################################################################
     def get_hunting_method(self):
-        t = self.event_tree
+        dict, t = et.initialize_event_tree('World/event_human_hunting.txt',0)
         hunting_skill, length = self.get_hunting_skill()
         hunting_method = {}
-        method_list = [(0,0,0,2,0,0), (0,0,0,2,0,1), (0,0,0,2,0,2)]
+        method_list = [(2,0,0), (2,0,1), (2,0,2)]
         for method in method_list:
             skills = [n for n in t.neighbors(method)]
             success_rate = np.ones(length)
             for skill in skills:
-                skill_name = self.event_dict[skill][0]
+                skill_name = dict[skill][0]
                 skill_rate = hunting_skill[skill_name]
                 success_rate = np.multiply(success_rate, skill_rate)
             hunting_method[method] = success_rate
@@ -205,33 +206,52 @@ class Human:
     ####################################################################################################################
     def take_turn(self):
         t = self.event_tree
-        self.compute_status()  # no matter which node the human is on at the moment, compute the status of that
-        # node(event).
-        status = self.event_dict[self.current_event][1]
-        #print('{}{} on status {}'.format(self.name, self.id_number, self.current_event))
+        self.compute_status()  # compute the status of non-terminal node(event). for terminal nodes, the status is
+        # generated when the event is conducted (for simple event) or when transfering back from the sub structure to
+        # the super structure (when a substructure is completed or failed in terms of a change in the root node of it,
+        # the corresponding event node in the superstructure get updated as well)
+        status = self.event_dict[self.current_event][-1]
+        #print('{}{} on status {}, in {}, focusing on {}, with completing state {}'.format(self.name, self.id_number, self.current_event,
+        #                                              self.current_tree_file, self.focus, status))
+        #print(self.name, self.current_event_structures)
         #print(self.food_stored, self.food_list, self.focus)
         #print(self.hunger, self.sleepiness, self.thirst)
 
 
         if t.out_degree(self.current_event) == 0:  # currently on leave
-            if status == 1:  # status 1 means event not completed, keep carrying out functions for simple event
+            if status == 1:  # status 1 means event not completed, keep carrying out functions for simpler event
                 event_name = self.event_dict[self.current_event][0]
-                if event_name == 'searching':
-                    self.searching()
-                elif event_name == 'going_to':
-                    self.going_to()
-                elif event_name in {'gathering', 'butchering', 'cooking', 'eating', 'laying_down', 'sleeping',
-                                    'waking_up', 'getting_up','drinking','resting','peeling','cracking'}:
-                    self.do_it(event_name)
-                else:
-                    self.hunt(event_name)
-                self.generate_language(event_name)  # generate the corresponding sentence for the ongoing simple event
+                if event_name != 'subtree': # the leave is a simple event
+                    if event_name == 'searching':
+                        self.searching()
+                    elif event_name == 'going_to':
+                        self.going_to()
+                    elif event_name in {'gathering', 'butchering', 'cooking', 'eating', 'laying_down', 'sleeping',
+                                        'waking_up', 'getting_up','drinking','resting','peeling','cracking'}:
+                        self.do_it(event_name)
+                    else:
+                        self.hunt(event_name)
+                    self.generate_language(event_name)  # generate the corresponding sentence for the ongoing simple event
+
+                else: # when the leave represent a subtree
+                    self.current_event_structures.append((self.event_dict, self.event_tree, self.current_event,
+                                                          self.current_tree_file)) #remember the super structure
+                    #print(self.event_dict[self.current_event])
+                    self.current_tree_file = 'World/' + self.event_dict[self.current_event][1]
+                    self.event_dict, self.event_tree = et.initialize_event_tree(self.current_tree_file, 0) # get into the subtree
+                    self.current_event = () #start from the root of the subtree
+
+
             elif status == 0: # status 0 means event completed
                 self.current_event = self.current_event[:len(self.current_event)-1]  # go back to the parent node
-            else:  # status -1 means event failed, re-initialize the event tree and restart
-                self.event_dict, self.event_tree = et.initialize_event_tree(config.World.event_tree_human, 0)
-                self.focus = None
+
+            else:  # status -1 means event failed, re-initialize the current event tree and restart
+                if len(self.current_event_structures) == 0: # when in the grand tree
+                    self.current_tree_file = config.World.event_tree_human
+                    self.focus = None
+                self.event_dict, self.event_tree = et.initialize_event_tree(self.current_tree_file, 0)
                 self.current_event = ()
+
 
         elif t.in_degree(self.current_event) != 0:  # currently on branch
             if status == 0:  # event completed, go back to parent node
@@ -241,17 +261,26 @@ class Human:
 
         else:  # currently on the root
             if status == 0:  # event tree have been completed, re-initialize the event tree
-                if VERBOSE:
-                    print('for {}, epoch finished'.format(self.name))
-                    print(self.hunger, self.sleepiness, self.thirst)
-                l = len(self.world.human_list)
-                if self.world.human_list.index(self) == l-1:
-                    self.world.epoch = self.world.epoch + 1
-                self.event_dict, self.event_tree = et.initialize_event_tree(config.World.event_tree_human,0)
-                self.focus = None
-                self.food_stored = self.food_stored/2
-                for food in self.food_list:
-                    food.remain_size = food.remain_size/2 # food rote
+                if len(self.current_event_structures) == 0: # currently on the grand structure which completed
+                    if VERBOSE:
+                        print('for {}, epoch finished'.format(self.name))
+                        print(self.hunger, self.sleepiness, self.thirst)
+                    l = len(self.world.human_list)
+                    if self.world.human_list.index(self) == l-1:
+                        self.world.epoch = self.world.epoch + 1
+                    self.event_dict, self.event_tree = et.initialize_event_tree(config.World.event_tree_human,0)
+                    self.focus = None
+                    self.food_stored = self.food_stored/2
+                    for food in self.food_list:
+                        food.remain_size = food.remain_size/2 # food rote
+
+                else: # currently in a sub structure which is completed
+                    self.event_dict, self.event_tree, self.current_event, self.current_tree_file = \
+                        self.current_event_structures[-1] # get back to the corresponding node in the super structure
+                    self.current_event_structures.pop() # erase the subevent from record
+                    #print(self.name, self.current_event_structures)
+                    self.event_dict[self.current_event][-1] = 0 # update the corresponding event to 'completed'
+
             else:  # event tree not completed, choose the child node to go and go to the child.
                 self.current_event = self.choose_heir()
 
@@ -400,6 +429,8 @@ class Human:
         event_type = self.event_dict[self.current_event][0]
         children = [n for n in t.neighbors(self.current_event)]
         children.sort()
+
+        # for serial and parallel node by score, rules are all the same across event trees
         if event_type == 's':
             index = len(children) - self.event_dict[self.current_event][1]
             self.current_event = children[index]
@@ -415,77 +446,82 @@ class Human:
             if self.current_event == (2,):  # choose the drink to drink
                 self.focus = random.choice(self.world.drink_category)
 
-        else:
-            if self.current_event == (0,0,0,2,0):  # choose hunting method
-                hunting_method_dist = []
-                index = self.world.herbivore_category.index(self.focus.category)
-                for child in children:
-                    hunting_method_dist.append(self.hunting_method[child][index])
-                norm = [float(i) / sum(hunting_method_dist) for i in hunting_method_dist]
-                self.current_event = children[int(np.random.choice(len(children), 1, p=norm)[0])]
+        else: # parallel nodes by probability, varying by the actual tree structure
+            if self.current_tree_file == 'World/event_human_hunting.txt': # in human hunting event
+                if self.current_event == (2,0):  # choose hunting method
+                    hunting_method_dist = []
+                    index = self.world.herbivore_category.index(self.focus.category)
+                    for child in children:
+                        hunting_method_dist.append(self.hunting_method[child][index])
+                    norm = [float(i) / sum(hunting_method_dist) for i in hunting_method_dist]
+                    self.current_event = children[int(np.random.choice(len(children), 1, p=norm)[0])]
         return self.current_event
 
-    def compute_scores(self, event):
-        if self.current_event == (): # decide what to satisfy
-            if event == (0, ) and self.hunger >= self.hunger_threshold:
-                score = self.hunger
-            elif event == (1, ) and self.sleepiness >= self.sleep_threshold:
-                score = self.sleepiness
-            elif event == (2,) and self.thirst >= self.thirst_threshold:
-                score = self.thirst
-            elif event == (3,):
-                score = 0
-            else:
-                score = -float('Inf')
-        elif self.current_event == (0, 0): # decide whether go out for food
-            if event == (0, 0, 0):
-                score = self.hunger
-            else:
-                score = self.food_stored
+    def compute_scores(self, event): # the exact computations of scores for parallel nodes vary by event tree it is in
 
-        elif self.current_event == (0,1,1): # decide whether cook or peel or crash
-            if self.focus == None:
-                self.focus = self.food_list[0]
+        if self.current_tree_file == config.World.event_tree_human: # in the grand human tree
+            if self.current_event == (): # decide what to satisfy
+                if event == (0, ) and self.hunger >= self.hunger_threshold:
+                    score = self.hunger
+                elif event == (1, ) and self.sleepiness >= self.sleep_threshold:
+                    score = self.sleepiness
+                elif event == (2,) and self.thirst >= self.thirst_threshold:
+                    score = self.thirst
+                elif event == (3,):
+                    score = 0
+                else:
+                    score = -float('Inf')
 
-            if event == (0,1,1,0): # animal: cook
-                if self.focus.category in self.world.herbivore_category:
-                    score = 1
+            elif self.current_event == (0, 0): # decide whether go out for food
+                if event == (0, 0, 0):
+                    score = self.hunger
                 else:
-                    score = 0
-            elif event == (0,1,1,1): # nut: crack
-                if self.focus.category in self.world.nut_category:
-                    score = 1
-                else:
-                    score = 0
-            else: # fruit: peel
-                if self.focus.category in self.world.fruit_category:
-                    score = 1
-                else:
-                    score = 0
+                    score = self.food_stored
 
-        elif self.current_event == (0,0,0,2): # decide whether hunt or gather
-            if event == (0,0,0,2,0):
-                if self.focus.category in self.world.herbivore_category: # find herbivore, go hunt
-                    score = 1
-                else:
-                    score = 0
-            else:
-                if self.focus.category not in self.world.herbivore_category: # find fruit or nut, go gather
-                    score = 1
-                else:
-                    score = 0
+            else: # decide whether cook or peel or crash
+                if self.focus == None:
+                    self.focus = self.food_list[0]
 
-        else: # decide whether butcher
-            if event == (0, 0, 0, 4, 0):
-                if self.focus.category in self.world.herbivore_category:  # find herbivore, go hunt
-                    score = 1
+                if event == (0,1,1,0): # animal: cook
+                    if self.focus.category in self.world.herbivore_category:
+                        score = 1
+                    else:
+                        score = 0
+                elif event == (0,1,1,1): # nut: crack
+                    if self.focus.category in self.world.nut_category:
+                        score = 1
+                    else:
+                        score = 0
+                else: # fruit: peel
+                    if self.focus.category in self.world.fruit_category:
+                        score = 1
+                    else:
+                        score = 0
+
+        else: # in the human hunting tree
+            if self.current_event == (2,): # decide whether hunt or gather
+                if event == (2,0):
+                    if self.focus.category in self.world.herbivore_category: # find herbivore, go hunt
+                        score = 1
+                    else:
+                        score = 0
                 else:
-                    score = 0
-            else:
-                if self.focus.category not in self.world.herbivore_category:  # find fruit or nut, go gather
-                    score = 1
+                    if self.focus.category not in self.world.herbivore_category: # find fruit or nut, go gather
+                        score = 1
+                    else:
+                        score = 0
+
+            else: # decide whether butcher
+                if event == (4, 0):
+                    if self.focus.category in self.world.herbivore_category:  # have herbivore, butcher
+                        score = 1
+                    else:
+                        score = 0
                 else:
-                    score = 0
+                    if self.focus.category not in self.world.herbivore_category:  # have fruit or nut, do not butcher
+                        score = 1
+                    else:
+                        score = 0
         return score
 
     ####################################################################################################################
@@ -501,14 +537,14 @@ class Human:
         if current_dict[self.current_event][0] == "s":
             score = 0
             for event in t.neighbors(self.current_event):
-                if current_dict[event][1] > 0:
+                if current_dict[event][-1] > 0:
                     score = score + 1
-            self.event_dict[self.current_event][1] = score
+            self.event_dict[self.current_event][-1] = score
 
         elif current_dict[self.current_event][0] in {'op','pp'}:
             for event in t.neighbors(self.current_event):
-                if current_dict[event][1] == 0:
-                    self.event_dict[self.current_event][1] = 0
+                if current_dict[event][-1] == 0:
+                    self.event_dict[self.current_event][-1] = 0
                     break
 
     def move(self):
@@ -690,6 +726,7 @@ class Human:
             self.world.human_eat += 1
             if  self.focus in self.world.herbivore_category or self.focus.type == 'animal':  # eat the dish one by one, completed when all dishes are gone
                 self.focus = self.dish_list.pop()
+                #print(self.focus, self.dish_list)
                 self.eat_count_meal = self.eat_count_meal + 1
                 if len(self.dish_list) == 0:
                     self.hunger = self.hunger - self.dish_amount
