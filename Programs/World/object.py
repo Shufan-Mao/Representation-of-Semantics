@@ -54,8 +54,24 @@ class Fruit(Plant_resource):
         self.category = str(np.random.choice(self.world.plant_taxo[self.plant_type], 1, p=[0.33, 0.33, 0.34])[0])
         self.id_number = len(self.world.fruit_list)
 
+class Material(Entity):
+    ####################################################################################################################
+    # define Material class,
+    # a Material object become into existence only when an agent 'find' it, for example, stone as potential 'material'
+    # always exists, but 'that pile of stone', as an individualized entity only come into being once it is separated from
+    # the stone mass by some agent, and the stone object refers to 'that pile of stone'
+    ####################################################################################################################
+    def __init(self, world, generator):
+        Entity.__init__(self, world)
+        self.generator = generator
+        self.type = 'material'
+        self.size = random.randint(100, 200)
+        self.category = generator.goal
+        self.x = generator.x
+        self.y = generator.y
 
-class Instrument:
+
+class Instrument(Entity):
     ####################################################################################################################
     # define instrument class, now including 2 subclasses: Tool (eaten by herbivores); Appliance (eaten by
     # human)
@@ -65,6 +81,7 @@ class Instrument:
 
     ####################################################################################################################
     def __init__(self, world):
+        Entity.__init__(self,world)
         self.world = world
         self.type = None
         self.category = None

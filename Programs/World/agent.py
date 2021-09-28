@@ -60,6 +60,7 @@ class Agent(Entity):
         # list is the structure super to the current structure, while the first item is the grand structure. The list is
         # empty when the agent is not inside of any sub structure.
 
+        self.goal = None # the goal of current event
         self.destination = None  # where to go
         self.food_target = None  # get the food target
         self.state_change = None  # get the change of drive levels for all actions.

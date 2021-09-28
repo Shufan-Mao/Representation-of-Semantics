@@ -18,4 +18,13 @@ getting_up,0,0,0
 drinking,0,0,0
 peeling,0.01,0,0
 cracking,0.02,0,0
-biting, 0.5,0,0.5
+chopping,0.1,0,0.05
+carving,0.01,0,0
+cutting,0.1,0,0.01
+heating,0.05,0,0.1
+weaving,0.01,0,0.05
+tying,0.02,0,0.05
+polishing,0.05,0,0.05
+biting,0.5,0,"0.5
+
+"

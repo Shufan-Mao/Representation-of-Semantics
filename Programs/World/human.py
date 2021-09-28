@@ -185,6 +185,9 @@ class Human(Agent):
         # print(state_change)
         return state_change
 
+    def get_event_info(self, event_name):
+        pass
+
     ####################################################################################################################
     # taking turn function for human
     # humans act due to the event tree structure
@@ -214,12 +217,14 @@ class Human(Agent):
             if status == 1:  # status 1 means event not completed, keep carrying out functions for simpler event
                 event_name = self.event_dict[self.current_event][0]
                 if event_name != 'subtree': # the leave is a simple event
+                    self.get_event_info(event_name)
                     if event_name == 'searching':
                         self.searching()
                     elif event_name == 'going_to':
                         self.going_to()
                     elif event_name in {'gathering', 'butchering', 'cooking', 'eating', 'laying_down', 'sleeping',
-                                        'waking_up', 'getting_up','drinking','resting','peeling','cracking'}:
+                                        'waking_up', 'getting_up','drinking','resting','peeling','cracking','cutting',
+                                        'chopping', 'weaving','heating','carving', 'polishing','tying'}:
                         self.do_it(event_name)
                     else:
                         self.hunt(event_name)
@@ -575,7 +580,7 @@ class Human(Agent):
     # if the focus is not an animal, the event is completed
     ####################################################################################################################
     def going_to(self):
-        if self.current_event == (0,0,0,0,1):
+        if self.current_event == (1,):
             self.destination = self.focus.category
             d = ((self.x - self.focus.x)**2 + (self.y - self.focus.y)**2)**0.5
             if d <= self.vision:
@@ -737,6 +742,7 @@ class Human(Agent):
 
         self.sleepiness = self.sleepiness + self.state_change[event_name][1]
         self.thirst = self.thirst + self.state_change[event_name][2]
+
 
 
 

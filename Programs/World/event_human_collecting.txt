@@ -1,0 +1,12 @@
+{()}
+{}
+{}
+['going_to',(0,0)]
+['chopping',(0,1)]
+['gathering',(0,2)]
+['going_to',(1,0)]
+['cracking',(1,1)]
+['gathering',(1,2)]
+['going_to',(2,0)]
+['cutting',(2,1)]
+['gathering',(2,2)]

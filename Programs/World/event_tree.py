@@ -11,7 +11,7 @@ from networkx.drawing.nx_agraph import graphviz_layout
 # There are leave files corresponding to different agent categories in the directory.
 ####################################################################################################################
 
-tree = 'World/event_human_hunting.txt'
+tree = 'World/event_human_crafting.txt'
 
 def initialize_event_tree(leave_file, show_tree):
     f = open(leave_file)

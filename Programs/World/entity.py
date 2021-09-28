@@ -8,6 +8,7 @@ class Entity:
         self.x = None
         self.y = None
         self.region = None # which region is the entity located
+        self.category = None
         self.map = world.world_map
 
     def get_region(self):
