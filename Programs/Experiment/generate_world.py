@@ -2,6 +2,7 @@ from Programs.World import world, config
 import csv
 import numpy as np
 
+
 VERBOSE = True
 
 
@@ -30,6 +31,7 @@ def running_world():  # running the world and get the corpus
     # the_display = display.Display(the_world)
     # the_display.root.mainloop()
 
+
     # count how many herbivores have been consumed
     num_consumed_herbivore = config.World.num_herbivores * len(the_world.herbivore_category) - len(the_world.herbivore_list)
 
@@ -56,13 +58,13 @@ def running_world():  # running the world and get the corpus
     print('{} sentences'.format(length))
     print('{} word tokens'.format(num_token))
     if VERBOSE:
-        print('First 100 sentences')
-        print()
-        for sentence in the_world.linear_corpus[:100]:
-            print(sentence)
-        print()
-        print('{} sentences'.format(length))
-        print('{} word tokens'.format(num_token))
+        #print('First 100 sentences')
+        #print()
+        #for sentence in the_world.linear_corpus[:100]:
+        #    print(sentence)
+        #print()
+        #print('{} sentences'.format(length))
+        #print('{} word tokens'.format(num_token))
         print('verbs: {}'.format(the_world.verb))
         print('transitive verbs: {}'.format(the_world.t_verb))
         print('agents: {}'.format(the_world.agent))
@@ -171,7 +173,6 @@ def get_world_info(the_world):
     ###############################################################################################################
     # followings are preparation for the s_task and p_task in syntactic models, get the s_kit, p_kit for the tasks.
     ###############################################################################################################
-    # Steve = agent.get_activated_words()[1]
     corpus = the_world.corpus
     num_sentence = len(corpus)
     #flat_standard = standard_ranking.flatten().reshape(rank_size,1)
@@ -185,4 +186,4 @@ def get_world_info(the_world):
     profile['num_sentence'] = num_sentence
 
     profiles.append(profile)
-    return profiles, linear_corpus
+    return profiles, linear_corpus, corpus

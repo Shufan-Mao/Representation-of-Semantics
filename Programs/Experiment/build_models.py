@@ -1,4 +1,5 @@
 from Programs.Spatial_Models import cooc_matrix, spatial_analysis
+from Programs.Graphical_Models import graphical_analysis, STN
 
 ########################################################################################################################
 # In Humans, corpora generated are lists of sentences, to feed the linear models, need to first transform the sentences
@@ -57,6 +58,13 @@ def build_model(word_bag, vocab_list, vocab_index_dict, model_parameters):
     else:
         sim_matrix = spatial_analysis.get_sr_matrix(grand_matrix[0], vocab_list, vocab_list, vocab_index_dict, sim_type)
     return grand_matrix, sim_matrix
+
+def build_structured_model(corpus): # model adjacency matrix for non-lexical nextworks:
+    constituent_net = STN.Stn(corpus)
+    node_list = constituent_net.network[1]
+    constituent_matrix = graphical_analysis.get_adjacency_matrix(constituent_net)[0]
+    return constituent_matrix, node_list
+
 
 
 

@@ -6,7 +6,7 @@ import numpy as np
 import math
 from scipy.sparse import lil_matrix
 
-VERBOSE = False
+VERBOSE = True
 
 
 ########################################################################################################################
@@ -106,11 +106,12 @@ def activation_spreading_analysis(adjacency_matrix, source, target, node_list, d
     else:
         W = adjacency_matrix
 
-    W = np.asmatrix(W)
+    if dg != 'constituent':
+        W = np.asmatrix(W)
     length = W.shape[0]
     W = lil_matrix(W)
 
-    if dg == False:
+    if dg == False or dg == 'constituent':
         normalizer = W.sum(1)
         for i in range(length):
             for j in range(length):
@@ -136,12 +137,16 @@ def activation_spreading_analysis(adjacency_matrix, source, target, node_list, d
     sorted_activation = activation_recorder.tolist()[0]
     sorted_activation.sort(reverse=True)
     node_dict = {}
+    sorted_dict = {}
 
-    #  for node in node_list:
-    #    node_dict[node] = activation_recorder[0,node_list.index(node)]
-    #  sorted_dict = {k: v for k, v in sorted(node_dict.items(), key=lambda item: item[1], reverse=True)}
-    #  for node in sorted_dict:
-    #    print((node, sorted_dict[node]))
+    '''''''''
+    if dg == 'constituent':
+        for node in node_list:
+            node_dict[node] = activation_recorder[0,node_list.index(node)]
+            sorted_dict = {k: v for k, v in sorted(node_dict.items(), key=lambda item: item[1], reverse=True)}
+        for node in sorted_dict:
+            print((node, sorted_dict[node]))
+    '''''''''
 
     semantic_relatedness_dict = {}
     for word in target:

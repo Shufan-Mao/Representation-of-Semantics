@@ -9,9 +9,10 @@ from Programs.Experiment import generate_world, build_models, paradigmatic_task 
 # s_task for conducting syntagmatic tasks
 # p_task for conducting paradigmatic tasks (not investigated in the current project)
 
-num_run = 1
-test_world = True
+num_run = 10
+test_world = False
 s_task = False
+test_best = True
 p_task = False
 
 svd_path = str(Path().cwd().parent / 'Data' / 'reduction')
@@ -31,6 +32,8 @@ parameter_dict = { 'period':['yes','no'],
                    'encode': ['distance','cos','corr','r_distance','r_cos','r_corr','cooc'],
                    'representation': ['space','graph']
                    }
+
+best_models = []#'M784','M770','M812','M854','M98', 'M1610'
 
 rep_num = 1
 for rep in rep_para:
@@ -83,6 +86,7 @@ def plot_svd(cooc_var_list, path, run):
 def get_model_list(parameter_dict, parameters):  # iterate over paramenter_dict to get the list of model_parameter_combinations (in
     # form of dictionary) in the experiment.
     model_list = []
+    best_list = []
     num_model = 1
     count_dict = {}
     for parameter in parameters:
@@ -95,17 +99,26 @@ def get_model_list(parameter_dict, parameters):  # iterate over paramenter_dict 
             parameters = parameter_dict[parameter]
             id = math.floor((i*count_dict[parameter]/num_model)%len(parameters))
             model_dict[parameter] = parameters[id]
+        if model_dict['Model'] in best_models:
+            best_list.append(model_dict)
         model_list.append(model_dict)
 
-    return model_list
+    #print(best_list)
+
+    return model_list, best_list
 
 
 def run_experiment(num_run):
     corpora = []
-    model_para_list = get_model_list(parameter_dict,parameters)
+    model_para_list, best_para_list = get_model_list(parameter_dict,parameters)
+    best_para_list.append('constituent') # adding consitituent tree network model
 
     output.output_model_dict(parameters, model_para_list)
-    num_model = len(model_para_list)
+
+    if test_best:
+        num_model = len(best_para_list)
+    else:
+        num_model = len(model_para_list)
     corr_header = ['world']
     corr_dict = {'world':[]}
     ranking_header = ['world','item']
@@ -127,7 +140,7 @@ def run_experiment(num_run):
         the_world = generate_world.running_world()
         if test_world:
             continue
-        profiles, linear_corpus = generate_world.get_world_info(the_world)
+        profiles, linear_corpus, corpus = generate_world.get_world_info(the_world)
         corpora.append(linear_corpus)
         profile = profiles[0]
         kit = profile['kit']
@@ -157,58 +170,77 @@ def run_experiment(num_run):
         current_ranking_matrix = standard_ranking.reshape(n * m,1)
         current_relate_matrix = standard_ranking.reshape(n * m,1)
 
-        # use world info to build models according each model parameter
+        # use world info to build models according each model parameter and run tasks on models
+
+        if test_best: # only select the best models for the tasks
+            model_para_list = best_para_list
         for model_parameters in model_para_list:
-            parameter_index = []
-            for dimension in parameters:
-                parameter_index.append(parameter_dict[dimension].index(model_parameters[dimension]))
-
-            # generate the matrix for analysis
             id_parameters = model_para_list.index(model_parameters)
-            if id_parameters % rep_num == 0:
-                period = model_parameters['period']
-                reduction = model_parameters['encode']
-                if period == 'no':
-                    period = False
-                else:
-                    period = True
-                boundary = model_parameters['boundary']
-                if boundary == 'yes':
-                    boundary = True
-                else:
-                    boundary = False
-                word_bag, vocab_list, vocab_index_dict = build_models.corpus_transformation(linear_corpus, period, boundary)
-                #print(word_bag)
-                #print(vocab_index_dict)
-                kit['vocab_list'] = vocab_list
-                kit['vocab_index_dict'] = vocab_index_dict
-                cooc_matrix, sim_matrix = build_models.build_model(word_bag, vocab_list, vocab_index_dict,
-                                                                model_parameters)
-                kit['sim_matrix'] = sim_matrix
-                if reduction[0] != 'r':
-                    kit['cooc_matrix'] = cooc_matrix
-                else:
-                    kit['cooc_matrix'] = cooc_matrix[0]
-                    cooc_var_list.append(cooc_matrix[1])
+            if model_parameters != 'constituent':
+                parameter_index = []
+                for dimension in parameters:
+                    parameter_index.append(parameter_dict[dimension].index(model_parameters[dimension]))
 
-            # run models
-            rep = model_parameters['representation']
-            encode = model_parameters['encode']
-            window_type = model_parameters['window_type']
+                # generate the matrix for analysis
+                if id_parameters % rep_num == 0 or test_best:
+                    #print(model_parameters)
+                    period = model_parameters['period']
+                    reduction = model_parameters['encode']
+                    if period == 'no':
+                        period = False
+                    else:
+                        period = True
+                    boundary = model_parameters['boundary']
+                    if boundary == 'yes':
+                        boundary = True
+                    else:
+                        boundary = False
+                    word_bag, vocab_list, vocab_index_dict = build_models.corpus_transformation(linear_corpus, period, boundary)
+                    #print(word_bag)
+                    #print(vocab_index_dict)
+                    kit['vocab_list'] = vocab_list
+                    kit['vocab_index_dict'] = vocab_index_dict
+                    cooc_matrix, sim_matrix = build_models.build_model(word_bag, vocab_list, vocab_index_dict,
+                                                                    model_parameters)
+                    kit['sim_matrix'] = sim_matrix
+                    if reduction[0] != 'r':
+                        kit['cooc_matrix'] = cooc_matrix
+                    else:
+                        kit['cooc_matrix'] = cooc_matrix[0]
+                        cooc_var_list.append(cooc_matrix[1])
 
-            if encode == 'cooc' and (window_type == 'boundary' or window_type == 'summed'):
-                dg = True
+
+                # run models
+
+
+                rep = model_parameters['representation']
+                encode = model_parameters['encode']
+                window_type = model_parameters['window_type']
+
+                if encode == 'cooc' and (window_type == 'boundary' or window_type == 'summed'):
+                    dg = True
+                else:
+                    dg = False
             else:
-                dg = False
+                encode = 'constituent'
+                dg = 'constituent'
+                rep = 'graph'
+                kit['constituent_matrix'], kit['vocab_list'] = build_models.build_structured_model(corpus) # get the
+                # adjacency matrix and the node_list of constituent network
 
             if p_task:
-                within_between = paradigmatic_task.run_task(kit, encode, rep)[1]
+                within_between = paradigmatic_task.run_task(kit, encode, rep, dg)[1]
                 for j in range(4):
                     wb_data_matrix[4*i+j][id_parameters] = within_between[j]
 
             if s_task:
                 #print(model_parameters)
-                kit['model_num'] = model_parameters['Model']
+                if model_parameters != 'constituent':
+                    kit['model_num'] = model_parameters['Model']
+                else:
+                    kit['model_num'] = 'M_con'
+
+                #print(model_parameters)
                 model_corr_dict, output_ranking, output_relate, standard_rankings = syntagmatic_task.run_task(kit, encode, rep, dg)
                 #print(model_corr_dict)
                 #print()
@@ -218,10 +250,14 @@ def run_experiment(num_run):
                 if len(corr_data_matrices) == 0:
                     for standard in model_corr_dict:
                         corr_data_matrices[standard] = np.zeros((num_run, num_model+1))
+                        corr_data_matrix = corr_data_matrices[standard]
+                        corr_data_matrix[i][id_parameters + 1] = model_corr_dict[standard]
                 else:
                     for standard in model_corr_dict:
                         corr_data_matrix = corr_data_matrices[standard]
                         corr_data_matrix[i][id_parameters+1] = model_corr_dict[standard]
+
+            #print(corr_data_matrices)
 
             if id_parameters % 300 == 0:
                 print(str(id_parameters) + ' models run')
@@ -237,12 +273,15 @@ def run_experiment(num_run):
     if s_task:
         ranking_data_matrix = ranking_data_matrix[1:]
         relate_data_matrix = relate_data_matrix[1:]
-    if not test_world:
-        output.output_corpora(corpora, num_run)
+    #if not test_world:
+        #output.output_corpora(corpora, num_run)
     if s_task:
         for standard in corr_data_matrices:
             corr_data_matrix = corr_data_matrices[standard]
-            file_name = standard + "_aa.csv" # after verb-agent count is adjusted to be the same as verb-patient
+            if test_best:
+                file_name = standard + "_best.csv" # only run best models of paper1, plus new models in paper2
+            else:
+                file_name = standard + "_aa.csv" # after verb-agent count is adjusted to be the same as verb-patient
             output.output_exp(num_model, corr_header, corr_dict, file_name, corr_data_matrix)
         #output.output_exp(num_model, ranking_header, ranking_dict,  's_ranking_v.csv', ranking_data_matrix)
         #output.output_exp(num_model, ranking_header, ranking_dict,  's_relateness_v.csv', relate_data_matrix)

@@ -122,11 +122,14 @@ def get_task_matrix(kit, encode, rep, dg):
     nouns = kit['nouns']
     verbs = kit['verbs']
     pairs = kit['pairs']
-    vocab_index_dict = kit['vocab_index_dict']
+    if encode != 'constituent':
+        vocab_index_dict = kit['vocab_index_dict']
     vocab_list = kit['vocab_list']
     task_matrix = np.zeros((len(nouns),len(verbs)))
     if encode == 'cooc':
         grand_matrix = kit['cooc_matrix']
+    elif encode == 'constituent':
+        grand_matrix = kit['constituent_matrix']
     else:
         grand_matrix = kit['sim_matrix']
 
@@ -140,6 +143,7 @@ def get_task_matrix(kit, encode, rep, dg):
             task_matrix[id_noun][id_verb] = grand_matrix[id_verb_grand][id_noun_grand]
     else:
         task_matrix = graphical_analysis.get_sr_matrix(grand_matrix, nouns, verbs, vocab_list, dg)
+
 
     return task_matrix
 
@@ -224,7 +228,9 @@ def plot_model_corpus(sorted_verb, model_num, flat_model_rank, flat_corpus_rank,
     fig, ax = plt.subplots(1,2,figsize=(9,9))
     fig.suptitle(model_num + ': ' + str(round(model_corr,3)))
 
-    if int(model_num[1:]) % 2 == 0:
+    if model_num == 'M_con': # constituent network model
+        color = 'purple'
+    elif int(model_num[1:]) % 2 == 0:
         color = 'blue'
     else:
         color = 'red'
@@ -241,10 +247,10 @@ def plot_model_corpus(sorted_verb, model_num, flat_model_rank, flat_corpus_rank,
     ax[1].set_xlim(0,10)
 
     plt.tight_layout()
-    #plt.show()
+    plt.show()
 
 
-    plt.savefig(save_path + '/' + str(model_num) + '.png')
+    #plt.savefig(save_path + '/' + str(model_num) + '.png')
 
 
 
@@ -303,8 +309,7 @@ def run_task(kit, encode, rep, dg):
             if plot_scatter:
                 sorted_verb, flat_model_rank, flat_corpus_rank = get_sorted_verb(thematic_matrix,standard_ranking,
                                                                                 model_ranking,verbs)
-                if model_corr > 0.76:
-                    plot_model_corpus(sorted_verb,model_num,flat_model_rank,flat_corpus_rank, model_corr)
+                plot_model_corpus(sorted_verb,model_num,flat_model_rank,flat_corpus_rank, model_corr)
             model_corr_dict[measure + '_' + combine] = model_corr
 
 

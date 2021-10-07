@@ -61,7 +61,7 @@ def get_category_sim(category_nouns, categories, noun_sim_matrix): # get paradig
     return category_sim_matrix, within_between_result
 
 
-def run_task(kit, encode, rep):
+def run_task(kit, encode, rep, dg):
     p_nouns = kit['p_nouns']
     the_world = kit['the_world']
     vocab_list = kit['vocab_list']
@@ -70,10 +70,14 @@ def run_task(kit, encode, rep):
 
     elif encode == 'cooc':
         adjacency_m = kit['cooc_matrix']
-        matrix = graphical_analysis.get_sr_matrix(adjacency_m, p_nouns, p_nouns, vocab_list)
+        matrix = graphical_analysis.get_sr_matrix(adjacency_m, p_nouns, p_nouns, vocab_list, dg)
+
+    elif encode == 'constituent':
+        adjacency_m = kit['adjacency_matrix']
+        matrix = graphical_analysis.get_sr_matrix(adjacency_m, p_nouns, p_nouns, vocab_list, dg)
     else:
         adjacency_m = kit['sim_matrix']
-        matrix = graphical_analysis.get_sr_matrix(adjacency_m, p_nouns, p_nouns, vocab_list)
+        matrix = graphical_analysis.get_sr_matrix(adjacency_m, p_nouns, p_nouns, vocab_list, dg)
     categories, category_nouns = get_categories(p_nouns, the_world)
     noun_sim_matrix = get_noun_sim(p_nouns,category_nouns, matrix, rep, vocab_list)
     category_sim_matrix, within_between = get_category_sim(category_nouns, categories, noun_sim_matrix)
